@@ -1,17 +1,16 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import { combineReducers } from '@reduxjs/toolkit';
 
-// Import slices (we'll create these next)
-import layersSlice from './slices/layersSlice';
-import fishUnitsSlice from './slices/fishUnitsSlice';
-import eggProductionSlice from './slices/eggProductionSlice';
-import mortalitySlice from './slices/mortalitySlice';
-import harvestSlice from './slices/harvestSlice';
-import expenseSlice from './slices/expenseSlice';
-import uiSlice from './slices/uiSlice';
+// Import slices
+import layersSlice from "./slices/layersSlice";
+import fishUnitsSlice from "./slices/fishUnitsSlice";
+import eggProductionSlice from "./slices/eggProductionSlice";
+import mortalitySlice from "./slices/mortalitySlice";
+import harvestSlice from "./slices/harvestSlice";
+import expenseSlice from "./slices/expenseSlice";
+import uiSlice from "./slices/uiSlice";
 
 const persistConfig = {
   key: 'root',

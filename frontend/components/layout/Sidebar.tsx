@@ -9,8 +9,8 @@ import { usePathname } from "next/navigation";
 import {
   HomeIcon,
   BuildingOfficeIcon,
-  FishIcon,
-  EggIcon,
+  BeakerIcon,
+  TagIcon,
   CurrencyDollarIcon,
   ChartBarIcon,
   XMarkIcon,
@@ -20,8 +20,8 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
   { name: "Layers", href: "/layers", icon: BuildingOfficeIcon },
-  { name: "Catfish", href: "/catfish", icon: FishIcon },
-  { name: "Egg Production", href: "/egg-production", icon: EggIcon },
+  { name: "Catfish", href: "/catfish", icon: BeakerIcon },
+  { name: "Egg Production", href: "/egg-production", icon: TagIcon },
   { name: "Harvest", href: "/harvest", icon: CurrencyDollarIcon },
   { name: "Analytics", href: "/analytics", icon: ChartBarIcon },
 ];
@@ -56,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logo */}
       <div className="flex items-center justify-between h-16 px-4 bg-gray-900">
         <div className="flex items-center">
-          <FishIcon className="h-8 w-8 text-blue-400" />
+          <BeakerIcon className="h-8 w-8 text-blue-400" />
           {sidebarOpen && (
             <span className="ml-2 text-xl font-semibold">FarmERP</span>
           )}
