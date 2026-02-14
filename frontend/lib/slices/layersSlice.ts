@@ -1,66 +1,76 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { ILayerBatch } from '../../models/LayerBatch';
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { ILayerBatch } from "../../models/LayerBatch";
+import { mockLayers, getMockApiResponse } from "../mockData";
 
 // Async thunks
-export const fetchLayers = createAsyncThunk(
-  'layers/fetchLayers',
-  async () => {
-    const response = await fetch('/api/layers');
+export const fetchLayers = createAsyncThunk("layers/fetchLayers", async () => {
+  try {
+    const response = await fetch("/api/layers");
     if (!response.ok) {
-      throw new Error('Failed to fetch layers');
+      throw new Error("Failed to fetch layers");
     }
     const data = await response.json();
     return data;
+  } catch (error) {
+    // Return mock data if API fails
+    console.warn("Using mock data for layers");
+    return getMockApiResponse(mockLayers);
   }
-);
+});
 
 export const createLayer = createAsyncThunk(
-  'layers/createLayer',
+  "layers/createLayer",
   async (layerData: Partial<ILayerBatch>) => {
-    const response = await fetch('/api/layers', {
-      method: 'POST',
+    const response = await fetch("/api/layers", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(layerData),
     });
     if (!response.ok) {
-      throw new Error('Failed to create layer');
+      throw new Error("Failed to create layer");
     }
     const data = await response.json();
     return data;
-  }
+  },
 );
 
 export const updateLayer = createAsyncThunk(
-  'layers/updateLayer',
-  async ({ id, layerData }: { id: string; layerData: Partial<ILayerBatch> }) => {
+  "layers/updateLayer",
+  async ({
+    id,
+    layerData,
+  }: {
+    id: string;
+    layerData: Partial<ILayerBatch>;
+  }) => {
     const response = await fetch(`/api/layers/${id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(layerData),
     });
     if (!response.ok) {
-      throw new Error('Failed to update layer');
+      throw new Error("Failed to update layer");
     }
     const data = await response.json();
     return data;
-  }
+  },
 );
 
 export const deleteLayer = createAsyncThunk(
-  'layers/deleteLayer',
+  "layers/deleteLayer",
   async (id: string) => {
     const response = await fetch(`/api/layers/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
     if (!response.ok) {
-      throw new Error('Failed to delete layer');
+      throw new Error("Failed to delete layer");
     }
     return id;
-  }
+  },
 );
 
 interface LayersState {
@@ -78,11 +88,13 @@ const initialState: LayersState = {
 };
 
 const layersSlice = createSlice({
-  name: 'layers',
+  name: "layers",
   initialState,
   reducers: {
     setSelectedLayer: (state, action: PayloadAction<ILayerBatch | null>) => {
-      state.selectedLayer = action.payload;
+      state.selectedLayer = action.payload
+        ? JSON.parse(JSON.stringify(action.payload))
+        : null;
     },
     clearError: (state) => {
       state.error = null;
@@ -97,11 +109,11 @@ const layersSlice = createSlice({
       })
       .addCase(fetchLayers.fulfilled, (state, action) => {
         state.loading = false;
-        state.layers = action.payload;
+        state.layers = action.payload.data || action.payload;
       })
       .addCase(fetchLayers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch layers';
+        state.error = action.error.message || "Failed to fetch layers";
       })
       // Create layer
       .addCase(createLayer.pending, (state) => {
@@ -114,7 +126,7 @@ const layersSlice = createSlice({
       })
       .addCase(createLayer.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to create layer';
+        state.error = action.error.message || "Failed to create layer";
       })
       // Update layer
       .addCase(updateLayer.pending, (state) => {
@@ -123,14 +135,16 @@ const layersSlice = createSlice({
       })
       .addCase(updateLayer.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.layers.findIndex(layer => layer._id === action.payload._id);
+        const index = state.layers.findIndex(
+          (layer) => layer._id.toString() === action.payload._id.toString(),
+        );
         if (index !== -1) {
           state.layers[index] = action.payload;
         }
       })
       .addCase(updateLayer.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to update layer';
+        state.error = action.error.message || "Failed to update layer";
       })
       // Delete layer
       .addCase(deleteLayer.pending, (state) => {
@@ -139,11 +153,13 @@ const layersSlice = createSlice({
       })
       .addCase(deleteLayer.fulfilled, (state, action) => {
         state.loading = false;
-        state.layers = state.layers.filter(layer => layer._id !== action.payload);
+        state.layers = state.layers.filter(
+          (layer) => layer._id.toString() !== action.payload,
+        );
       })
       .addCase(deleteLayer.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to delete layer';
+        state.error = action.error.message || "Failed to delete layer";
       });
   },
 });

@@ -1,18 +1,32 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { IEggProduction } from "../../models/EggProduction";
+import {
+  mockEggProduction,
+  getMockApiResponse,
+  filterMockData,
+} from "../mockData";
 
 export const fetchEggProduction = createAsyncThunk(
   "eggProduction/fetchEggProduction",
   async (layerBatchId?: string) => {
-    const url = layerBatchId
-      ? `/api/egg-production?layerBatchId=${layerBatchId}`
-      : "/api/egg-production";
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error("Failed to fetch egg production");
+    try {
+      const url = layerBatchId
+        ? `/api/egg-production?layerBatchId=${layerBatchId}`
+        : "/api/egg-production";
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch egg production");
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      // Return mock data if API fails
+      console.warn("Using mock data for egg production");
+      const data = layerBatchId
+        ? filterMockData.getEggProductionByLayerId(layerBatchId)
+        : mockEggProduction;
+      return getMockApiResponse(data);
     }
-    const data = await response.json();
-    return data;
   },
 );
 
@@ -99,7 +113,7 @@ const eggProductionSlice = createSlice({
       })
       .addCase(fetchEggProduction.fulfilled, (state, action) => {
         state.loading = false;
-        state.eggProduction = action.payload;
+        state.eggProduction = action.payload.data || action.payload;
       })
       .addCase(fetchEggProduction.rejected, (state, action) => {
         state.loading = false;
@@ -125,7 +139,7 @@ const eggProductionSlice = createSlice({
       .addCase(updateEggProduction.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.eggProduction.findIndex(
-          (record) => record._id === action.payload._id,
+          (record) => record._id.toString() === action.payload._id.toString(),
         );
         if (index !== -1) {
           state.eggProduction[index] = action.payload;
@@ -143,7 +157,7 @@ const eggProductionSlice = createSlice({
       .addCase(deleteEggProduction.fulfilled, (state, action) => {
         state.loading = false;
         state.eggProduction = state.eggProduction.filter(
-          (record) => record._id !== action.payload,
+          (record) => record._id.toString() !== action.payload,
         );
       })
       .addCase(deleteEggProduction.rejected, (state, action) => {

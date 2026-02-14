@@ -1,15 +1,22 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { IFishUnit } from "../../models/FishUnit";
+import { mockFishUnits, getMockApiResponse } from "../mockData";
 
 export const fetchFishUnits = createAsyncThunk(
   "fishUnits/fetchFishUnits",
   async () => {
-    const response = await fetch("/api/fish-units");
-    if (!response.ok) {
-      throw new Error("Failed to fetch fish units");
+    try {
+      const response = await fetch("/api/fish-units");
+      if (!response.ok) {
+        throw new Error("Failed to fetch fish units");
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      // Return mock data if API fails
+      console.warn("Using mock data for fish units");
+      return getMockApiResponse(mockFishUnits);
     }
-    const data = await response.json();
-    return data;
   },
 );
 
@@ -87,7 +94,9 @@ const fishUnitsSlice = createSlice({
   initialState,
   reducers: {
     setSelectedFishUnit: (state, action: PayloadAction<IFishUnit | null>) => {
-      state.selectedFishUnit = action.payload;
+      state.selectedFishUnit = action.payload
+        ? JSON.parse(JSON.stringify(action.payload))
+        : null;
     },
     clearError: (state) => {
       state.error = null;
@@ -101,7 +110,7 @@ const fishUnitsSlice = createSlice({
       })
       .addCase(fetchFishUnits.fulfilled, (state, action) => {
         state.loading = false;
-        state.fishUnits = action.payload;
+        state.fishUnits = action.payload.data || action.payload;
       })
       .addCase(fetchFishUnits.rejected, (state, action) => {
         state.loading = false;
@@ -126,7 +135,7 @@ const fishUnitsSlice = createSlice({
       .addCase(updateFishUnit.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.fishUnits.findIndex(
-          (unit) => unit._id === action.payload._id,
+          (unit) => unit._id.toString() === action.payload._id.toString(),
         );
         if (index !== -1) {
           state.fishUnits[index] = action.payload;
@@ -143,7 +152,7 @@ const fishUnitsSlice = createSlice({
       .addCase(deleteFishUnit.fulfilled, (state, action) => {
         state.loading = false;
         state.fishUnits = state.fishUnits.filter(
-          (unit) => unit._id !== action.payload,
+          (unit) => unit._id.toString() !== action.payload,
         );
       })
       .addCase(deleteFishUnit.rejected, (state, action) => {

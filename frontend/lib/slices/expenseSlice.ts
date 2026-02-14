@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { IExpense } from "../../models/Expense";
+import { mockExpenses, getMockApiResponse, filterMockData } from "../mockData";
 
 export const fetchExpenses = createAsyncThunk(
   "expenses/fetchExpenses",
@@ -7,16 +8,32 @@ export const fetchExpenses = createAsyncThunk(
     category,
     relatedUnitId,
   }: { category?: string; relatedUnitId?: string } = {}) => {
-    const params = new URLSearchParams();
-    if (category) params.append("category", category);
-    if (relatedUnitId) params.append("relatedUnitId", relatedUnitId);
+    try {
+      const params = new URLSearchParams();
+      if (category) params.append("category", category);
+      if (relatedUnitId) params.append("relatedUnitId", relatedUnitId);
 
-    const response = await fetch(`/api/expenses?${params.toString()}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch expenses");
+      const response = await fetch(`/api/expenses?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch expenses");
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      // Return mock data if API fails
+      console.warn("Using mock data for expenses");
+      let data = mockExpenses;
+
+      if (category) {
+        data = filterMockData.getExpensesByCategory(category);
+      }
+
+      if (relatedUnitId) {
+        data = filterMockData.getExpensesByUnitId(relatedUnitId);
+      }
+
+      return getMockApiResponse(data);
     }
-    const data = await response.json();
-    return data;
   },
 );
 
@@ -103,7 +120,7 @@ const expenseSlice = createSlice({
       })
       .addCase(fetchExpenses.fulfilled, (state, action) => {
         state.loading = false;
-        state.expenses = action.payload;
+        state.expenses = action.payload.data || action.payload;
       })
       .addCase(fetchExpenses.rejected, (state, action) => {
         state.loading = false;

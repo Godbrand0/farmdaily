@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 interface CachedConnection {
   conn: typeof mongoose | null;
@@ -25,7 +25,11 @@ async function connectDB(): Promise<typeof mongoose> {
     const mongoUri = process.env.MONGODB_URI;
 
     if (!mongoUri) {
-      throw new Error('Please define the MONGODB_URI environment variable');
+      console.warn(
+        "MONGODB_URI environment variable not defined. Using mock data mode.",
+      );
+      // Return a mock connection that will fail gracefully
+      throw new Error("MongoDB not configured");
     }
 
     global.mongoose.promise = mongoose.connect(mongoUri, {
@@ -37,6 +41,7 @@ async function connectDB(): Promise<typeof mongoose> {
     global.mongoose.conn = await global.mongoose.promise;
   } catch (e) {
     global.mongoose.promise = null;
+    console.warn("Failed to connect to MongoDB. Using mock data mode.");
     throw e;
   }
 

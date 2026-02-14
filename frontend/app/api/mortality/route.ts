@@ -87,11 +87,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate referenceId exists
-    let referenceModel;
+    let referenceModel: typeof LayerBatch | typeof FishUnit;
     if (body.livestockType === "Layer") {
       referenceModel = LayerBatch;
     } else if (body.livestockType === "Catfish") {
       referenceModel = FishUnit;
+    } else {
+      return NextResponse.json(
+        { success: false, error: "Invalid livestock type" },
+        { status: 400 },
+      );
     }
 
     const reference = await referenceModel.findById(body.referenceId);

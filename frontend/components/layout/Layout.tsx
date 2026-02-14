@@ -23,17 +23,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen max-w-full flex bg-background">
       {/* Mobile sidebar overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden animate-fade-in"
           onClick={handleMobileMenuClose}
         />
       )}
 
       {/* Sidebar */}
-      <div className={clsx("lg:block", mobileMenuOpen ? "block" : "hidden")}>
+      <div
+        className={clsx(
+          "fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out lg:hidden",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
         <Sidebar mobile={true} onClose={handleMobileMenuClose} />
       </div>
 
@@ -45,15 +50,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main content */}
       <div
         className={clsx(
-          "lg:pl-0 transition-all duration-300 ease-in-out",
-          sidebarOpen ? "lg:ml-64" : "lg:ml-16",
+          "transition-all duration-300 w-full ease-in-out",
+          sidebarOpen ? "lg:ml-1" : "lg:ml-16",
         )}
       >
         <Header onMobileMenuToggle={handleMobileMenuToggle} />
 
-        <main className="flex-1">
-          <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <main className="">
+          <div className="py-6 animate-slide-up">
+            <div className=" mx-auto px-4 w-full sm:px-6 lg:px-8">
               {children}
             </div>
           </div>

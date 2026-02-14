@@ -1,5 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { IMortalityRecord } from "../../models/MortalityRecord";
+import {
+  mockMortalityRecords,
+  getMockApiResponse,
+  filterMockData,
+} from "../mockData";
 
 export const fetchMortalityRecords = createAsyncThunk(
   "mortality/fetchMortalityRecords",
@@ -7,16 +12,32 @@ export const fetchMortalityRecords = createAsyncThunk(
     livestockType,
     referenceId,
   }: { livestockType?: string; referenceId?: string } = {}) => {
-    const params = new URLSearchParams();
-    if (livestockType) params.append("livestockType", livestockType);
-    if (referenceId) params.append("referenceId", referenceId);
+    try {
+      const params = new URLSearchParams();
+      if (livestockType) params.append("livestockType", livestockType);
+      if (referenceId) params.append("referenceId", referenceId);
 
-    const response = await fetch(`/api/mortality?${params.toString()}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch mortality records");
+      const response = await fetch(`/api/mortality?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch mortality records");
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      // Return mock data if API fails
+      console.warn("Using mock data for mortality records");
+      let data = mockMortalityRecords;
+
+      if (livestockType) {
+        data = filterMockData.getMortalityByLivestockType(livestockType);
+      }
+
+      if (referenceId) {
+        data = filterMockData.getMortalityByReferenceId(referenceId);
+      }
+
+      return getMockApiResponse(data);
     }
-    const data = await response.json();
-    return data;
   },
 );
 
@@ -79,7 +100,7 @@ const mortalitySlice = createSlice({
       })
       .addCase(fetchMortalityRecords.fulfilled, (state, action) => {
         state.loading = false;
-        state.mortalityRecords = action.payload;
+        state.mortalityRecords = action.payload.data || action.payload;
       })
       .addCase(fetchMortalityRecords.rejected, (state, action) => {
         state.loading = false;

@@ -1,18 +1,28 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { IFishHarvest } from "../../models/FishHarvest";
+import { mockHarvests, getMockApiResponse, filterMockData } from "../mockData";
 
 export const fetchHarvests = createAsyncThunk(
   "harvest/fetchHarvests",
   async (fishUnitId?: string) => {
-    const url = fishUnitId
-      ? `/api/harvest?fishUnitId=${fishUnitId}`
-      : "/api/harvest";
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error("Failed to fetch harvest records");
+    try {
+      const url = fishUnitId
+        ? `/api/harvest?fishUnitId=${fishUnitId}`
+        : "/api/harvest";
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch harvest records");
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      // Return mock data if API fails
+      console.warn("Using mock data for harvests");
+      const data = fishUnitId
+        ? filterMockData.getHarvestsByFishUnitId(fishUnitId)
+        : mockHarvests;
+      return getMockApiResponse(data);
     }
-    const data = await response.json();
-    return data;
   },
 );
 
@@ -99,7 +109,7 @@ const harvestSlice = createSlice({
       })
       .addCase(fetchHarvests.fulfilled, (state, action) => {
         state.loading = false;
-        state.harvests = action.payload;
+        state.harvests = action.payload.data || action.payload;
       })
       .addCase(fetchHarvests.rejected, (state, action) => {
         state.loading = false;

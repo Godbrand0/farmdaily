@@ -29,26 +29,47 @@ export function Table<T extends Record<string, any>>({
   if (loading) {
     return (
       <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (data.length === 0) {
-    return <div className="text-center py-8 text-gray-500">{emptyText}</div>;
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <div className="flex flex-col items-center space-y-2">
+          <div className="rounded-full bg-muted p-3">
+            <svg
+              className="h-6 w-6 text-muted-foreground"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+          </div>
+          <p>{emptyText}</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className={clsx("overflow-x-auto", className)}>
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
+    <div className={clsx("w-full overflow-auto", className)}>
+      <table className="w-full caption-bottom text-sm">
+        <thead className="[&_tr]:border-b">
+          <tr className="border-b transition-colors hover:bg-muted/50">
             {columns.map((column) => (
               <th
                 key={String(column.key)}
                 scope="col"
                 className={clsx(
-                  "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+                  "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
                   column.width && column.width,
                 )}
               >
@@ -57,12 +78,12 @@ export function Table<T extends Record<string, any>>({
             ))}
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="[&_tr:last-child]:border-0">
           {data.map((record, index) => (
             <tr
               key={index}
               className={clsx(
-                "hover:bg-gray-50",
+                "border-b transition-colors hover:bg-muted/50",
                 onRowClick && "cursor-pointer",
               )}
               onClick={() => onRowClick?.(record, index)}
@@ -70,7 +91,7 @@ export function Table<T extends Record<string, any>>({
               {columns.map((column) => (
                 <td
                   key={String(column.key)}
-                  className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                  className="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
                   {column.render
                     ? column.render(record[column.key], record, index)
