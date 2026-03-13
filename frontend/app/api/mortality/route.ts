@@ -1,173 +1,136 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import MortalityRecord from "@/models/MortalityRecord";
-import LayerBatch from "@/models/LayerBatch";
-import FishUnit from "@/models/FishUnit";
-import mongoose from "mongoose";
+import { supabase } from "@/lib/supabase";
+
+function mapMortality(row: any) {
+  return {
+    _id: row.id,
+    livestockType: row.livestock_type,
+    referenceId: row.reference_id,
+    numberDead: row.number_dead,
+    cause: row.cause,
+    date: row.date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export async function GET(request: NextRequest) {
-  try {
-    await connectDB();
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
+  const livestockType = searchParams.get("livestockType");
+  const referenceId = searchParams.get("referenceId");
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const livestockType = searchParams.get("livestockType");
-    const referenceId = searchParams.get("referenceId");
-    const skip = (page - 1) * limit;
+  let query = supabase
+    .from("mortality_records")
+    .select("*", { count: "exact" })
+    .order("date", { ascending: false })
+    .range(from, to);
 
-    // Build query
-    const query: any = {};
-    if (livestockType) {
-      query.livestockType = livestockType;
-    }
-    if (referenceId) {
-      query.referenceId = referenceId;
-    }
+  if (livestockType) {
+    query = query.eq("livestock_type", livestockType);
+  }
+  if (referenceId) {
+    query = query.eq("reference_id", referenceId);
+  }
 
-    const mortalityRecords = await MortalityRecord.find(query)
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate("referenceId");
+  const { data, error, count } = await query;
 
-    const total = await MortalityRecord.countDocuments(query);
-
-    return NextResponse.json({
-      success: true,
-      data: mortalityRecords,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
+  if (error) {
     console.error("Error fetching mortality records:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch mortality records" },
       { status: 500 },
     );
   }
+
+  return NextResponse.json({
+    success: true,
+    data: (data ?? []).map(mapMortality),
+    pagination: {
+      page,
+      limit,
+      total: count ?? 0,
+      pages: Math.ceil((count ?? 0) / limit),
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    await connectDB();
+  const body = await request.json();
 
-    const body = await request.json();
-
-    // Validate required fields
-    const requiredFields = [
-      "livestockType",
-      "referenceId",
-      "numberDead",
-      "cause",
-      "date",
-    ];
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        return NextResponse.json(
-          { success: false, error: `${field} is required` },
-          { status: 400 },
-        );
-      }
-    }
-
-    // Validate livestockType
-    if (!["Layer", "Catfish"].includes(body.livestockType)) {
+  const requiredFields = ["livestockType", "referenceId", "numberDead", "cause", "date"];
+  for (const field of requiredFields) {
+    if (!body[field]) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "livestockType must be either Layer or Catfish",
-        },
+        { success: false, error: `${field} is required` },
         { status: 400 },
       );
     }
+  }
 
-    // Validate referenceId exists
-    let referenceModel: typeof LayerBatch | typeof FishUnit;
-    if (body.livestockType === "Layer") {
-      referenceModel = LayerBatch;
-    } else if (body.livestockType === "Catfish") {
-      referenceModel = FishUnit;
-    } else {
-      return NextResponse.json(
-        { success: false, error: "Invalid livestock type" },
-        { status: 400 },
-      );
-    }
-
-    const reference = await referenceModel.findById(body.referenceId);
-    if (!reference) {
-      return NextResponse.json(
-        { success: false, error: "Reference not found" },
-        { status: 404 },
-      );
-    }
-
-    // Validate numberDead doesn't exceed current stock
-    if (body.livestockType === "Layer") {
-      if (body.numberDead > reference.currentBirdsAlive) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Number dead cannot exceed current birds alive",
-          },
-          { status: 400 },
-        );
-      }
-    } else if (body.livestockType === "Catfish") {
-      if (body.numberDead > reference.currentFishAlive) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Number dead cannot exceed current fish alive",
-          },
-          { status: 400 },
-        );
-      }
-    }
-
-    // Create mortality record
-    const mortalityRecord = new MortalityRecord(body);
-    await mortalityRecord.save();
-
-    // Update current stock
-    if (body.livestockType === "Layer") {
-      await LayerBatch.findByIdAndUpdate(body.referenceId, {
-        $inc: { currentBirdsAlive: -body.numberDead },
-      });
-    } else if (body.livestockType === "Catfish") {
-      await FishUnit.findByIdAndUpdate(body.referenceId, {
-        $inc: { currentFishAlive: -body.numberDead },
-      });
-    }
-
+  if (!["Layer", "Catfish"].includes(body.livestockType)) {
     return NextResponse.json(
-      {
-        success: true,
-        data: mortalityRecord,
-      },
-      { status: 201 },
+      { success: false, error: "livestockType must be either Layer or Catfish" },
+      { status: 400 },
     );
-  } catch (error: any) {
+  }
+
+  // Verify reference exists and check stock
+  const table = body.livestockType === "Layer" ? "layer_batches" : "fish_units";
+  const stockField = body.livestockType === "Layer" ? "current_birds_alive" : "current_fish_alive";
+
+  const { data: reference, error: refError } = await supabase
+    .from(table)
+    .select(`id, ${stockField}`)
+    .eq("id", body.referenceId)
+    .single();
+
+  if (refError || !reference) {
+    return NextResponse.json(
+      { success: false, error: "Reference not found" },
+      { status: 404 },
+    );
+  }
+
+  const currentStock = reference[stockField];
+  const stockLabel =
+    body.livestockType === "Layer" ? "current birds alive" : "current fish alive";
+
+  if (body.numberDead > currentStock) {
+    return NextResponse.json(
+      { success: false, error: `Number dead cannot exceed ${stockLabel}` },
+      { status: 400 },
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("mortality_records")
+    .insert({
+      livestock_type: body.livestockType,
+      reference_id: body.referenceId,
+      number_dead: body.numberDead,
+      cause: body.cause,
+      date: body.date,
+    })
+    .select()
+    .single();
+
+  if (error) {
     console.error("Error creating mortality record:", error);
-
-    if (error.name === "ValidationError") {
-      const validationErrors = Object.values(error.errors).map(
-        (err: any) => err.message,
-      );
-      return NextResponse.json(
-        { success: false, error: validationErrors.join(", ") },
-        { status: 400 },
-      );
-    }
-
     return NextResponse.json(
       { success: false, error: "Failed to create mortality record" },
       { status: 500 },
     );
   }
+
+  // Decrement stock on the parent record
+  await supabase
+    .from(table)
+    .update({ [stockField]: currentStock - body.numberDead })
+    .eq("id", body.referenceId);
+
+  return NextResponse.json({ success: true, data: mapMortality(data) }, { status: 201 });
 }

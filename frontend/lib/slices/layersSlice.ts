@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { ILayerBatch } from "../../models/LayerBatch";
+import { ILayerBatch } from "../types";
 import { mockLayers, getMockApiResponse } from "../mockData";
 
 // Async thunks

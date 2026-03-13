@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { IFishUnit } from "../../models/FishUnit";
+import { IFishUnit } from "../types";
 import { mockFishUnits, getMockApiResponse } from "../mockData";
 
 export const fetchFishUnits = createAsyncThunk(

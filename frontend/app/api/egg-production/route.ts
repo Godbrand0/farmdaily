@@ -1,109 +1,103 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import EggProduction from "@/models/EggProduction";
-import LayerBatch from "@/models/LayerBatch";
-import mongoose from "mongoose";
+import { supabase } from "@/lib/supabase";
+
+function mapEggProduction(row: any) {
+  return {
+    _id: row.id,
+    layerBatchId: row.layer_batch_id,
+    eggsCollected: row.eggs_collected,
+    damagedEggs: row.damaged_eggs,
+    date: row.date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export async function GET(request: NextRequest) {
-  try {
-    await connectDB();
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
+  const layerBatchId = searchParams.get("layerBatchId");
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const layerBatchId = searchParams.get("layerBatchId");
-    const skip = (page - 1) * limit;
+  let query = supabase
+    .from("egg_production")
+    .select("*", { count: "exact" })
+    .order("date", { ascending: false })
+    .range(from, to);
 
-    // Build query
-    const query: any = {};
-    if (layerBatchId) {
-      query.layerBatchId = layerBatchId;
-    }
+  if (layerBatchId) {
+    query = query.eq("layer_batch_id", layerBatchId);
+  }
 
-    const eggProduction = await EggProduction.find(query)
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate("layerBatchId");
+  const { data, error, count } = await query;
 
-    const total = await EggProduction.countDocuments(query);
-
-    return NextResponse.json({
-      success: true,
-      data: eggProduction,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
+  if (error) {
     console.error("Error fetching egg production:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch egg production" },
       { status: 500 },
     );
   }
+
+  return NextResponse.json({
+    success: true,
+    data: (data ?? []).map(mapEggProduction),
+    pagination: {
+      page,
+      limit,
+      total: count ?? 0,
+      pages: Math.ceil((count ?? 0) / limit),
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    await connectDB();
+  const body = await request.json();
 
-    const body = await request.json();
-
-    // Validate required fields
-    const requiredFields = [
-      "layerBatchId",
-      "eggsCollected",
-      "damagedEggs",
-      "date",
-    ];
-    for (const field of requiredFields) {
-      if (body[field] === undefined || body[field] === null) {
-        return NextResponse.json(
-          { success: false, error: `${field} is required` },
-          { status: 400 },
-        );
-      }
-    }
-
-    // Validate layer batch exists
-    const layerBatch = await LayerBatch.findById(body.layerBatchId);
-    if (!layerBatch) {
+  const requiredFields = ["layerBatchId", "eggsCollected", "damagedEggs", "date"];
+  for (const field of requiredFields) {
+    if (body[field] === undefined || body[field] === null) {
       return NextResponse.json(
-        { success: false, error: "Layer batch not found" },
-        { status: 404 },
-      );
-    }
-
-    const eggProduction = new EggProduction(body);
-    await eggProduction.save();
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: eggProduction,
-      },
-      { status: 201 },
-    );
-  } catch (error: any) {
-    console.error("Error creating egg production record:", error);
-
-    if (error.name === "ValidationError") {
-      const validationErrors = Object.values(error.errors).map(
-        (err: any) => err.message,
-      );
-      return NextResponse.json(
-        { success: false, error: validationErrors.join(", ") },
+        { success: false, error: `${field} is required` },
         { status: 400 },
       );
     }
+  }
 
+  // Verify the layer batch exists
+  const { data: batch, error: batchError } = await supabase
+    .from("layer_batches")
+    .select("id")
+    .eq("id", body.layerBatchId)
+    .single();
+
+  if (batchError || !batch) {
+    return NextResponse.json(
+      { success: false, error: "Layer batch not found" },
+      { status: 404 },
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("egg_production")
+    .insert({
+      layer_batch_id: body.layerBatchId,
+      eggs_collected: body.eggsCollected,
+      damaged_eggs: body.damagedEggs,
+      date: body.date,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating egg production record:", error);
     return NextResponse.json(
       { success: false, error: "Failed to create egg production record" },
       { status: 500 },
     );
   }
+
+  return NextResponse.json({ success: true, data: mapEggProduction(data) }, { status: 201 });
 }

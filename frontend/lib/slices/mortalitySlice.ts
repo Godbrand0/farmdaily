@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { IMortalityRecord } from "../../models/MortalityRecord";
+import { IMortalityRecord } from "../types";
 import {
   mockMortalityRecords,
   getMockApiResponse,

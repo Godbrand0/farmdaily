@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { IExpense } from "../../models/Expense";
+import { IExpense } from "../types";
 import { mockExpenses, getMockApiResponse, filterMockData } from "../mockData";
 
 export const fetchExpenses = createAsyncThunk(

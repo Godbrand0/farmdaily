@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { IEggProduction } from "../../models/EggProduction";
+import { IEggProduction } from "../types";
 import {
   mockEggProduction,
   getMockApiResponse,

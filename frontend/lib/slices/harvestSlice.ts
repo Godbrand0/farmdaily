@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { IFishHarvest } from "../../models/FishHarvest";
+import { IFishHarvest } from "../types";
 import { mockHarvests, getMockApiResponse, filterMockData } from "../mockData";
 
 export const fetchHarvests = createAsyncThunk(

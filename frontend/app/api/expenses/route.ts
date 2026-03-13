@@ -1,123 +1,105 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import Expense from "@/models/Expense";
-import mongoose from "mongoose";
+import { supabase } from "@/lib/supabase";
+
+function mapExpense(row: any) {
+  return {
+    _id: row.id,
+    category: row.category,
+    amount: row.amount,
+    description: row.description,
+    date: row.date,
+    relatedUnitId: row.related_unit_id ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export async function GET(request: NextRequest) {
-  try {
-    await connectDB();
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
+  const category = searchParams.get("category");
+  const relatedUnitId = searchParams.get("relatedUnitId");
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const category = searchParams.get("category");
-    const relatedUnitId = searchParams.get("relatedUnitId");
-    const skip = (page - 1) * limit;
+  let query = supabase
+    .from("expenses")
+    .select("*", { count: "exact" })
+    .order("date", { ascending: false })
+    .range(from, to);
 
-    // Build query
-    const query: any = {};
-    if (category) {
-      query.category = category;
-    }
-    if (relatedUnitId) {
-      query.relatedUnitId = relatedUnitId;
-    }
+  if (category) {
+    query = query.eq("category", category);
+  }
+  if (relatedUnitId) {
+    query = query.eq("related_unit_id", relatedUnitId);
+  }
 
-    const expenses = await Expense.find(query)
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate("relatedUnitId");
+  const { data, error, count } = await query;
 
-    const total = await Expense.countDocuments(query);
-
-    return NextResponse.json({
-      success: true,
-      data: expenses,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
+  if (error) {
     console.error("Error fetching expenses:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch expenses" },
       { status: 500 },
     );
   }
+
+  return NextResponse.json({
+    success: true,
+    data: (data ?? []).map(mapExpense),
+    pagination: {
+      page,
+      limit,
+      total: count ?? 0,
+      pages: Math.ceil((count ?? 0) / limit),
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    await connectDB();
+  const body = await request.json();
 
-    const body = await request.json();
-
-    // Validate required fields
-    const requiredFields = ["category", "amount", "description", "date"];
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        return NextResponse.json(
-          { success: false, error: `${field} is required` },
-          { status: 400 },
-        );
-      }
-    }
-
-    // Validate category
-    if (
-      !["Feed", "Medication", "Maintenance", "Labor"].includes(body.category)
-    ) {
+  const requiredFields = ["category", "amount", "description", "date"];
+  for (const field of requiredFields) {
+    if (!body[field]) {
       return NextResponse.json(
-        {
-          success: false,
-          error:
-            "category must be either Feed, Medication, Maintenance, or Labor",
-        },
+        { success: false, error: `${field} is required` },
         { status: 400 },
       );
     }
+  }
 
-    // Validate relatedUnitId if provided
-    if (
-      body.relatedUnitId &&
-      !mongoose.Types.ObjectId.isValid(body.relatedUnitId)
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Invalid related unit ID" },
-        { status: 400 },
-      );
-    }
-
-    const expense = new Expense(body);
-    await expense.save();
-
+  if (!["Feed", "Medication", "Maintenance", "Labor"].includes(body.category)) {
     return NextResponse.json(
       {
-        success: true,
-        data: expense,
+        success: false,
+        error: "category must be either Feed, Medication, Maintenance, or Labor",
       },
-      { status: 201 },
+      { status: 400 },
     );
-  } catch (error: any) {
+  }
+
+  const { data, error } = await supabase
+    .from("expenses")
+    .insert({
+      category: body.category,
+      amount: body.amount,
+      description: body.description,
+      date: body.date,
+      related_unit_id: body.relatedUnitId ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) {
     console.error("Error creating expense:", error);
-
-    if (error.name === "ValidationError") {
-      const validationErrors = Object.values(error.errors).map(
-        (err: any) => err.message,
-      );
-      return NextResponse.json(
-        { success: false, error: validationErrors.join(", ") },
-        { status: 400 },
-      );
-    }
-
     return NextResponse.json(
       { success: false, error: "Failed to create expense" },
       { status: 500 },
     );
   }
+
+  return NextResponse.json({ success: true, data: mapExpense(data) }, { status: 201 });
 }
