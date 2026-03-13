@@ -6,10 +6,9 @@ export interface MockLayerBatch {
   _id: string;
   batchName: string;
   cageNumber: string;
-  birdsPlaced: number;
+  numberOfBirds: number;
   currentBirdsAlive: number;
-  datePlaced: Date;
-  breed: string;
+  dateStocked: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,11 +40,11 @@ export interface MockFishHarvest {
   fishUnitId: string;
   harvestType: string;
   quantityHarvested: number;
-  averageWeight: number;
-  totalWeight: number;
+  averageWeightKg: number;
+  totalWeightKg: number;
   pricePerKg: number;
   totalIncome: number;
-  date: Date;
+  harvestDate: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,10 +77,9 @@ export const mockLayers: MockLayerBatch[] = [
     _id: "1",
     batchName: "Layer Batch 1",
     cageNumber: "C001",
-    birdsPlaced: 1000,
+    numberOfBirds: 1000,
     currentBirdsAlive: 980,
-    datePlaced: new Date("2024-01-15"),
-    breed: "Hy-Line Brown",
+    dateStocked: new Date("2024-01-15"),
     createdAt: new Date("2024-01-15"),
     updatedAt: new Date("2024-01-15"),
   },
@@ -89,10 +87,9 @@ export const mockLayers: MockLayerBatch[] = [
     _id: "2",
     batchName: "Layer Batch 2",
     cageNumber: "C002",
-    birdsPlaced: 1200,
+    numberOfBirds: 1200,
     currentBirdsAlive: 1150,
-    datePlaced: new Date("2024-02-01"),
-    breed: "Lohmann Brown",
+    dateStocked: new Date("2024-02-01"),
     createdAt: new Date("2024-02-01"),
     updatedAt: new Date("2024-02-01"),
   },
@@ -100,10 +97,9 @@ export const mockLayers: MockLayerBatch[] = [
     _id: "3",
     batchName: "Layer Batch 3",
     cageNumber: "C003",
-    birdsPlaced: 800,
+    numberOfBirds: 800,
     currentBirdsAlive: 785,
-    datePlaced: new Date("2024-02-10"),
-    breed: "ISA Brown",
+    dateStocked: new Date("2024-02-10"),
     createdAt: new Date("2024-02-10"),
     updatedAt: new Date("2024-02-10"),
   },
@@ -193,11 +189,11 @@ export const mockHarvests: MockFishHarvest[] = [
     fishUnitId: "1",
     harvestType: "Live",
     quantityHarvested: 200,
-    averageWeight: 1.5,
-    totalWeight: 300,
+    averageWeightKg: 1.5,
+    totalWeightKg: 300,
     pricePerKg: 8.5,
     totalIncome: 2550,
-    date: new Date("2024-02-05"),
+    harvestDate: new Date("2024-02-05"),
     createdAt: new Date("2024-02-05"),
     updatedAt: new Date("2024-02-05"),
   },
@@ -206,11 +202,11 @@ export const mockHarvests: MockFishHarvest[] = [
     fishUnitId: "2",
     harvestType: "Smoked",
     quantityHarvested: 150,
-    averageWeight: 1.2,
-    totalWeight: 180,
+    averageWeightKg: 1.2,
+    totalWeightKg: 180,
     pricePerKg: 12.0,
     totalIncome: 2160,
-    date: new Date("2024-02-10"),
+    harvestDate: new Date("2024-02-10"),
     createdAt: new Date("2024-02-10"),
     updatedAt: new Date("2024-02-10"),
   },
@@ -219,11 +215,11 @@ export const mockHarvests: MockFishHarvest[] = [
     fishUnitId: "3",
     harvestType: "Live",
     quantityHarvested: 300,
-    averageWeight: 1.8,
-    totalWeight: 540,
+    averageWeightKg: 1.8,
+    totalWeightKg: 540,
     pricePerKg: 9.0,
     totalIncome: 4860,
-    date: new Date("2024-02-12"),
+    harvestDate: new Date("2024-02-12"),
     createdAt: new Date("2024-02-12"),
     updatedAt: new Date("2024-02-12"),
   },
